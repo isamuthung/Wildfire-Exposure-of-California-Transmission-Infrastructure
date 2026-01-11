@@ -7,58 +7,53 @@ This repository implements a screening-level spatial exposure analysis of Califo
 * where transmission geometry overlaps modeled wildfire hazard
 * where it intersects observed historical fire perimeters
 * where those two forms of exposure co-occur
+
 The goal is not to predict fires, assess grid reliability, or estimate damages. Instead, the project organizes fragmented public datasets into a clear, reproducible spatial framework that highlights where exposure persistently accumulates and where deeper engineering, planning, or policy analysis may be most warranted.
 
 ---
 
 ## Scope & Design
 
-This project is intentionally **descriptive and retrospective**, rather than predictive. It measures spatial overlap between transmission infrastructure and wildfire-related datasets, and treats that overlap strictly as **exposure**, not risk, vulnerability, or likelihood of failure.
+This project is intentionally descriptive and retrospective, rather than predictive. All spatial overlap is treated strictly as exposure, not risk, vulnerability, or likelihood of failure.
 
-Several design principles guide the analysis:
+Core design principles:
+* Exposure ≠ risk ≠ failure: Spatial overlap indicates co-location only. It does not imply causality, probability, or operational outcome.
+* Public data only: No confidential system maps, asset-condition data, mitigation measures, or reliability metrics are used.
+* Scope discipline over completeness: Where public data cannot support defensible inference, questions are explicitly left unanswered rather than filled with assumptions.
 
-- **Exposure ≠ risk ≠ failure**  
-  Spatial overlap indicates co-location, not probability, causality, or operational outcome.
+Within these constraints, the analysis focuses on identifying where wildfire hazard and historical fire occurrence repeatedly intersect transmission infrastructure, how concentrated that exposure is, and whether joint exposure is diffuse or localized across the system.
 
-- **Public data only**  
-  The analysis uses no confidential system maps, asset-condition data, mitigation information, or reliability metrics.
-
-- **Scope discipline over completeness**  
-  Where public data cannot support defensible inference, questions are explicitly left unanswered rather than filled with assumptions.
-
-Within these constraints, the analysis focuses on identifying where wildfire hazard and historical fire occurrence repeatedly intersect transmission infrastructure, how concentrated that exposure is, and whether joint exposure is diffuse or localized across the network. The project does not attempt to estimate ignition probability, fire spread, vegetation conditions, protection systems, outage likelihood, or economic consequences.
-
+The project does not attempt to estimate ignition probability, fire spread, vegetation conditions, protection systems, outage likelihood, or economic consequences.
 ---
 
 ## Data Sources
 
 All analysis relies exclusively on publicly available, authoritative datasets published by state and federal agencies:
 
-1. **CAL FIRE Fire Hazard Severity Zones (FHSZ)**  
-   Statewide hazard classification maps (LRA + SRA) representing modeled wildfire hazard based on fire behavior, fuels, and environmental conditions. These are treated as institutional hazard designations, not outcome-based risk estimates.
+* CAL FIRE Fire Hazard Severity Zones (FHSZ)
+Statewide hazard classification maps (LRA + SRA) representing modeled wildfire hazard based on fire behavior, fuels, and environmental conditions. These are treated as institutional hazard designations, not probabilistic risk estimates.
 
-2. **CAL FIRE Fire and Resource Assessment Program (FRAP) Fire Perimeters**  
-   Historical fire perimeter polygons used to identify where fires have occurred historically. These indicate occurrence, not infrastructure damage or operational impact.
+* CAL FIRE Fire and Resource Assessment Program (FRAP) Fire Perimeters
+Historical fire perimeter polygons indicating where fires have occurred. These indicate occurrence, not infrastructure damage or operational impact.
 
-3. **High-Voltage Transmission Line Geometry (Federal / HIFLD sources)**  
-   Publicly released transmission line geometries representing ≥115 kV infrastructure. Coverage is incomplete by design and treated as indicative rather than exhaustive.
+* High-Voltage Transmission Line Geometry (Federal / HIFLD sources)
+Publicly released geometries representing ≥115 kV transmission infrastructure. Coverage is incomplete by design and treated as indicative rather than exhaustive.
 
-No attempt is made to infer missing assets, reconstruct confidential system maps, or substitute assumptions for undisclosed infrastructure.
-
+No attempt is made to infer missing assets, reconstruct confidential system maps, or replace undisclosed infrastructure with assumptions.
 ---
 
 ## Repository Structure
 ```
 ├─ README.md
 ├─ requirements.txt
-├─ .env # local PostGIS credentials (not committed)
+├─ .env              # local PostGIS credentials (not committed)
 ├─ .gitignore
 │
 ├─ data/
 │ ├─ raw/
-│ │ ├─ fhsz/ # CAL FIRE Fire Hazard Severity Zones
-│ │ ├─ fire_perimeters/ # CAL FIRE FRAP historical fire perimeters
-│ │ └─ transmission/ # Public transmission line shapefiles
+│ │ ├─ fhsz/
+│ │ ├─ fire_perimeters/
+│ │ └─ transmission/
 │ ├─ interim/
 │ └─ processed/
 │
@@ -75,61 +70,70 @@ No attempt is made to infer missing assets, reconstruct confidential system maps
 ├─ outputs/
 │ ├─ tables/
 │ ├─ figures/
-│ └─ tiles/ # GeoJSON → MBTiles → MapLibre HTML
+│ └─ tiles/          # GeoJSON → MBTiles → interactive map
 │
-└─ scripts/ # future reproducibility utilities
+├─ scripts/          # CLI utilities for reproducible ingestion & metrics
+├─ sql/
+│ ├─ schema.sql
+│ ├─ indexes.sql
+│ └─ queries/
+│
+└─ map/              # Docker + MapLibre visualization
+   ├─ docker-compose.yml
+   ├─ config.json
+   └─ web/
 ```
 
 ---
 
 ## Notebooks
 
-The notebooks are designed to be run **in order** and together form a transparent, database-centered analytics pipeline. Computationally expensive spatial operations are performed once and cached, allowing downstream notebooks to reuse results without re-running geometry intersections.
+The notebooks are designed to be run in order and together form a transparent, database-centered analytics pipeline. Computationally expensive spatial intersections are executed once and cached in PostGIS, ensuring reproducibility and performance.
 
-### 01_ingest_fhsz.ipynb  
-Ingests CAL FIRE Fire Hazard Severity Zone datasets (LRA + SRA), standardizes hazard classifications, and writes authoritative hazard tables to PostGIS.
+01_ingest_fhsz.ipynb
 
-### 02_ingest_fire_perimeters.ipynb  
-Ingests CAL FIRE FRAP historical fire perimeters, extracts fire-year attributes, and writes standardized perimeter geometry to PostGIS.
+Ingests CAL FIRE Fire Hazard Severity Zone data (LRA + SRA), standardizes classifications, and writes authoritative hazard tables to PostGIS.
 
-### 03_ingest_transmission_lines.ipynb  
-Ingests public transmission line geometries, filters to ≥115 kV, computes accurate line lengths using EPSG:3310, and writes an authoritative `transmission_lines` table with a permanent primary key to support stable joins throughout the analysis.
+02_ingest_fire_perimeters.ipynb
 
-### 04_transmission_fhsz_exposure.ipynb  
-Computes per-line overlap between transmission geometry and wildfire hazard zones. Results are cached in a table that stores overlap length by hazard class.
+Ingests CAL FIRE FRAP historical fire perimeters, extracts temporal attributes, and stores standardized geometries in PostGIS.
 
-### 05_transmission_fire_exposure.ipynb  
-Computes per-line overlap between transmission geometry and historical fire perimeters within the selected year window. Optional temporal aggregation enables coarse recurrence analysis without repeated geometry computation.
+03_ingest_transmission_lines.ipynb
 
-### 06_joint_exposure.ipynb  
-Combines cached exposure tables to identify **joint exposure**, defined as transmission segments intersecting both Very High wildfire hazard and historical fire perimeters. This notebook performs no heavy spatial operations.
+Ingests public transmission line geometries, filters to ≥115 kV, computes accurate line lengths in EPSG:3310, and assigns permanent primary keys for stable joins.
 
-### 07_results_synthesis.ipynb  
-Reads only cached exposure tables and summary outputs to generate report-ready tables and figures. No PostGIS geometry computation occurs in this notebook.
+04_transmission_fhsz_exposure.ipynb
 
-### 08_vector_tile_mapping.ipynb  
-Exports California-clipped GeoJSON layers, builds MBTiles using Tippecanoe, serves tiles locally via Docker, and generates an interactive MapLibre map with a contextual basemap. This notebook is intentionally isolated due to runtime and visualization complexity.
+Computes per-line overlap between transmission geometry and wildfire hazard zones. Results are cached by hazard class to avoid repeated geometry computation.
 
----
+05_transmission_fire_exposure.ipynb
 
-## Key Results (High-Level)
+Computes per-line overlap between transmission geometry and historical fire perimeters within the selected analysis window.
 
-At a statewide screening level:
+06_joint_exposure.ipynb
 
-- A small share of California’s ≥115 kV transmission network intersects **Very High** wildfire hazard zones.
-- An even smaller share intersects historical fire perimeters from 1990–2024.
-- **Joint exposure**—where Very High hazard zones and historical fire occurrence overlap the same transmission segments—is highly concentrated within a limited subset of corridors rather than being uniformly distributed across the network.
+Combines cached exposure tables to identify joint exposure, defined as transmission segments intersecting both Very High hazard zones and historical fire perimeters. No heavy spatial computation occurs here.
 
-These results indicate that wildfire exposure of the transmission system is not diffuse, but instead accumulates persistently in specific geographic areas.
+07_results_synthesis.ipynb
+
+Generates report-ready tables and figures using cached exposure results only.
 
 ---
 
-## Limitations
+## Interactive Map
 
-This project measures **geometric overlap only**. It does not estimate ignition probability, fire spread, asset condition, protection systems, vegetation management practices, outage likelihood, or economic impacts. Public wildfire and infrastructure datasets are coarse abstractions of complex physical systems, and transmission geometry coverage is incomplete by design.
+The project includes a high-quality interactive web map built with:
 
-Results are intended to support **prioritization and scoping**, not operational decision-making.
+* Tippecanoe for vector-tile generation
+* TileServer-GL (Dockerized) for local tile serving
+* MapLibre GL JS for browser-based rendering
 
+This approach enables:
+* smooth rendering of large transmission datasets
+* layer toggling (all lines, Very High hazard segments, joint exposure)
+* clean cartographic styling comparable to professional GIS platforms
+
+The map is served locally and designed to be embeddable or hosted on static infrastructure if desired.
 ---
 
 ## Reproducibility
