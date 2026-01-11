@@ -1,0 +1,10 @@
+metric,value
+Total transmission length analyzed (km),34197.97857113975
+Transmission length in Very High FHSZ (km),7126.069249952414
+Transmission length intersecting historical fire perimeters (km),156.93399369133007
+Joint exposure length (Very High FHSZ ∩ historical fire) (km),57.04165069488604
+Lines with any historical fire overlap (count),133.0
+Lines with joint exposure (count),78.0
+Very High share of total analyzed length (%),20.83769143000231
+Joint share of Very High length (%),0.8004644453218995
+Joint share of total analyzed length (%),0.16679831112305699

@@ -1,0 +1,13 @@
+{
+    "options": {
+      "paths": {
+        "root": "/data"
+      }
+    },
+    "data": {
+      "tx": { "mbtiles": "/data/tx.mbtiles" },
+      "exposure": { "mbtiles": "/data/exposure.mbtiles" },
+      "joint": { "mbtiles": "/data/joint.mbtiles" }
+    }
+  }
+  

@@ -1,0 +1,9 @@
+services:
+  tileserver:
+    image: maptiler/tileserver-gl:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./tiles:/data
+      - ./config.json:/config.json
+    command: ["--config", "/config.json", "--port", "8080", "--public_url", "http://localhost:8080"]

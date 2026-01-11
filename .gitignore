@@ -205,3 +205,41 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+####################################
+# Project-specific: geospatial + DB
+####################################
+
+# Large geospatial data files
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.tif
+*.tiff
+*.vrt
+*.geojson
+*.zip
+
+# PostGIS / spatial temp files
+*.pgdump
+
+# Local analytical databases (if used)
+*.sqlite
+*.sqlite3
+*.duckdb
+
+# Data directories (raw + intermediate only)
+data/raw/
+data/interim/
+
+# Allow processed outputs explicitly if desired
+# !data/processed/*.csv
+# !data/processed/*.parquet
+
+
+map/export/
+map/tiles/
+*.mbtiles
