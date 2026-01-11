@@ -23,9 +23,7 @@ def get_engine():
 
 
 def _start_heartbeat(stop_event: threading.Event, interval_sec: int = 20):
-    """
-    Prints periodic updates so you know the script is still running.
-    """
+   
     start = time.time()
     while not stop_event.is_set():
         elapsed = int(time.time() - start)
@@ -34,12 +32,7 @@ def _start_heartbeat(stop_event: threading.Event, interval_sec: int = 20):
 
 
 def split_sql_statements(sql: str):
-    """
-    Simple SQL splitter for our controlled SQL file.
-    Assumptions:
-      - no semicolons inside string literals
-      - no procedural blocks requiring semicolons inside DO $$ ... $$ (we don't use those here)
-    """
+
     parts = sql.split(";")
     stmts = []
     for p in parts:
