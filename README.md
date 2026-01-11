@@ -10,8 +10,6 @@ This repository implements a screening-level spatial exposure analysis of Califo
 
 The goal is not to predict fires, assess grid reliability, or estimate damages. Instead, the project organizes fragmented public datasets into a clear, reproducible spatial framework that highlights where exposure persistently accumulates and where deeper engineering, planning, or policy analysis may be most warranted.
 
----
-
 ## Scope & Design
 
 This project is intentionally descriptive and retrospective, rather than predictive. All spatial overlap is treated strictly as exposure, not risk, vulnerability, or likelihood of failure.
@@ -24,7 +22,6 @@ Core design principles:
 Within these constraints, the analysis focuses on identifying where wildfire hazard and historical fire occurrence repeatedly intersect transmission infrastructure, how concentrated that exposure is, and whether joint exposure is diffuse or localized across the system.
 
 The project does not attempt to estimate ignition probability, fire spread, vegetation conditions, protection systems, outage likelihood, or economic consequences.
----
 
 ## Data Sources
 
@@ -40,52 +37,77 @@ Historical fire perimeter polygons indicating where fires have occurred. These i
 Publicly released geometries representing ≥115 kV transmission infrastructure. Coverage is incomplete by design and treated as indicative rather than exhaustive.
 
 No attempt is made to infer missing assets, reconstruct confidential system maps, or replace undisclosed infrastructure with assumptions.
----
 
 ## Repository Structure
 ```
-├─ README.md
-├─ requirements.txt
-├─ .env              # local PostGIS credentials (not committed)
-├─ .gitignore
-│
-├─ data/
-│ ├─ raw/
-│ │ ├─ fhsz/
-│ │ ├─ fire_perimeters/
-│ │ └─ transmission/
-│ ├─ interim/
-│ └─ processed/
-│
-├─ notebooks/
-│ ├─ 01_ingest_fhsz.ipynb
-│ ├─ 02_ingest_fire_perimeters.ipynb
-│ ├─ 03_ingest_transmission_lines.ipynb
-│ ├─ 04_transmission_fhsz_exposure.ipynb
-│ ├─ 05_transmission_fire_exposure.ipynb
-│ ├─ 06_joint_exposure.ipynb
-│ ├─ 07_results_synthesis.ipynb
-│ └─ 08_vector_tile_mapping.ipynb
-│
-├─ outputs/
-│ ├─ tables/
-│ ├─ figures/
-│ └─ tiles/          # GeoJSON → MBTiles → interactive map
-│
-├─ scripts/          # CLI utilities for reproducible ingestion & metrics
-├─ sql/
-│ ├─ schema.sql
-│ ├─ indexes.sql
-│ └─ queries/
-│
-└─ map/              # Docker + MapLibre visualization
-   ├─ docker-compose.yml
-   ├─ config.json
-   └─ web/
+Wildfire-Exposure-of-California-Transmission-Infrastructure/
+|--- .env.example
+|--- .gitignore
+|--- LICENSE
+|--- README.md
+|--- requirements.txt
+|--- data/
+|    |--- .gitkeep
+|--- docs/
+|    |--- index.html
+|    |--- tiles/
+|         |--- exposure.pmtiles
+|         |--- joint.pmtiles
+|         |--- tx.pmtiles
+|--- map/
+|    |--- config.json
+|    |--- docker-compose.yml
+|    |--- export/
+|    |    |--- polygons_fire_union.geojson
+|    |    |--- polygons_vh.geojson
+|    |    |--- tx_lines_all.geojson
+|    |    |--- tx_segments_joint.geojson
+|    |    |--- tx_segments_vh.geojson
+|    |--- tiles/
+|    |    |--- exposure.mbtiles
+|    |    |--- joint.mbtiles
+|    |    |--- tx.mbtiles
+|    |--- web/
+|         |--- index.html
+|--- notebooks/
+|    |--- 01_ingest_fire_hazard_severity_zones.ipynb
+|    |--- 02_ingest_fire_perimeters.ipynb
+|    |--- 03_ingest_transmission_lines.ipynb
+|    |--- 04_compute_transmission_and_fhsz_exposure.ipynb
+|    |--- 05_compute_transmissio_and_historical_fire_exposure.ipynb
+|    |--- 06_compute_joint_exposure.ipynb
+|    |--- 07_results_synthesis.ipynb
+|--- outputs/
+|    |--- figures/
+|    |    |--- fig_exposure_funnel.png
+|    |    |--- fig_fhsz_overlap_by_class.png
+|    |    |--- fig_joint_exposure_pareto.png
+|    |--- tables/
+|         |--- report_exec_summary.csv
+|         |--- report_overlap_by_hazard_class.csv
+|         |--- report_top25_joint_exposure_lines.csv
+|         |--- tx_joint_exposure_by_line.csv
+|         |--- tx_joint_exposure_summary.csv
+|         |--- tx_joint_exposure_top25_lines.csv
+|         |--- tx_length_by_fhsz_class.csv
+|         |--- tx_overlap_any_fire_by_line.csv
+|         |--- tx_overlap_any_fire_total.csv
+|         |--- tx_overlap_fhsz_by_line.csv
+|--- scripts/
+|    |--- 00_check_env.py
+|    |--- 01_validate_inputs.py
+|    |--- 02_execute_pipeline.py
+|    |--- 03_quality_checks.py
+|    |--- 04_build_report_assets.py
+|    |--- 05_export_map_layers.py
+|    |--- 06_build_vector_tiles.sh
+|    |--- 07_run_map_local.sh
+|--- sql/
+|    |--- indexes.sql
+|    |--- schema.sql
+|    |--- queries/
+|         |--- 05_create_map_layers.sql
 ```
-
----
-
 ## Notebooks
 
 The notebooks are designed to be run in order and together form a transparent, database-centered analytics pipeline. Computationally expensive spatial intersections are executed once and cached in PostGIS, ensuring reproducibility and performance.
