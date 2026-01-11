@@ -1,12 +1,16 @@
 # Wildfire-Exposure-of-California-Transmission-Infrastructure
 Screening-Level Spatial Analysis
 
-Wildfires have become a persistent and structurally significant feature of California’s landscape, shaped not only by extreme events but by repeated exposure across the same regions year after year. Rather than occurring as isolated disasters, wildfire hazard increasingly recurs within defined geographic corridors that intersect critical infrastructure systems not designed for sustained fire pressure. Electric transmission infrastructure is particularly exposed. High-voltage transmission lines are long, linear assets that traverse mountainous and forested terrain, often intersecting areas of elevated wildfire hazard repeatedly over time. Public discussion of wildfire and the electric grid frequently centers on individual fire events, outages, or catastrophic seasons. Less attention is paid to where wildfire exposure consistently accumulates across the transmission network and which portions of the system face sustained spatial pressure rather than episodic interaction. This project was developed to help clarify that gap using only publicly available data and defensible spatial analytics.
+This repository implements a **screening-level spatial exposure analysis** of publicly available (and incomplete by design) California **≥115 kV** transmission line geometries against:
 
-This repository implements a screening-level spatial exposure analysis of California’s high-voltage electric transmission infrastructure. Using publicly released wildfire hazard maps and historical fire perimeter data, the analysis quantifies:
-* where transmission geometry overlaps modeled wildfire hazard
-* where it intersects observed historical fire perimeters
-* where those two forms of exposure co-occur
+- **CAL FIRE Fire Hazard Severity Zones (FHSZ)** (modeled hazard classifications)
+- **CAL FIRE FRAP historical fire perimeters** (observed occurrence polygons)
+
+The core outputs quantify (in kilometers) where transmission geometry overlaps:
+
+- **FHSZ hazard classes**
+- **historical fire perimeters**
+- **joint exposure** (segments intersecting both **Very High** FHSZ and the historical fire footprint)
 
 The goal is not to predict fires, assess grid reliability, or estimate damages. Instead, the project organizes fragmented public datasets into a clear, reproducible spatial framework that highlights where exposure persistently accumulates and where deeper engineering, planning, or policy analysis may be most warranted.
 
@@ -17,7 +21,7 @@ This project is intentionally descriptive and retrospective, rather than predict
 Core design principles:
 * Exposure ≠ risk ≠ failure: Spatial overlap indicates co-location only. It does not imply causality, probability, or operational outcome.
 * Public data only: No confidential system maps, asset-condition data, mitigation measures, or reliability metrics are used.
-* Scope discipline over completeness: Where public data cannot support defensible inference, questions are explicitly left unanswered rather than filled with assumptions.
+* Scope discipline over completeness: Where public data cannot support defensible inference, questions are left unanswered rather than filled with assumptions.
 
 Within these constraints, the analysis focuses on identifying where wildfire hazard and historical fire occurrence repeatedly intersect transmission infrastructure, how concentrated that exposure is, and whether joint exposure is diffuse or localized across the system.
 
@@ -41,7 +45,6 @@ No attempt is made to infer missing assets, reconstruct confidential system maps
 ## Repository Structure
 ```
 Wildfire-Exposure-of-California-Transmission-Infrastructure/
-|--- .env.example
 |--- .gitignore
 |--- LICENSE
 |--- README.md
@@ -57,16 +60,12 @@ Wildfire-Exposure-of-California-Transmission-Infrastructure/
 |--- map/
 |    |--- config.json
 |    |--- docker-compose.yml
-|    |--- export/
-|    |    |--- polygons_fire_union.geojson
-|    |    |--- polygons_vh.geojson
-|    |    |--- tx_lines_all.geojson
-|    |    |--- tx_segments_joint.geojson
-|    |    |--- tx_segments_vh.geojson
-|    |--- tiles/
-|    |    |--- exposure.mbtiles
-|    |    |--- joint.mbtiles
-|    |    |--- tx.mbtiles
+|    |--- sql/
+|    |    |--- create_map_layers.sql
+|    |--- scripts/
+|    |    |--- map_01_export_layers.py
+|    |    |--- map_02_build_tiles.sh
+|    |    |--- map_03_serve_local.sh
 |    |--- web/
 |         |--- index.html
 |--- notebooks/
@@ -74,7 +73,7 @@ Wildfire-Exposure-of-California-Transmission-Infrastructure/
 |    |--- 02_ingest_fire_perimeters.ipynb
 |    |--- 03_ingest_transmission_lines.ipynb
 |    |--- 04_compute_transmission_and_fhsz_exposure.ipynb
-|    |--- 05_compute_transmissio_and_historical_fire_exposure.ipynb
+|    |--- 05_compute_transmission_and_historical_fire_exposure.ipynb
 |    |--- 06_compute_joint_exposure.ipynb
 |    |--- 07_results_synthesis.ipynb
 |--- outputs/
@@ -93,50 +92,42 @@ Wildfire-Exposure-of-California-Transmission-Infrastructure/
 |         |--- tx_overlap_any_fire_by_line.csv
 |         |--- tx_overlap_any_fire_total.csv
 |         |--- tx_overlap_fhsz_by_line.csv
-|--- scripts/
-|    |--- 00_check_env.py
-|    |--- 01_validate_inputs.py
-|    |--- 02_execute_pipeline.py
-|    |--- 03_quality_checks.py
-|    |--- 04_build_report_assets.py
-|    |--- 05_export_map_layers.py
-|    |--- 06_build_vector_tiles.sh
-|    |--- 07_run_map_local.sh
-|--- sql/
-|    |--- indexes.sql
-|    |--- schema.sql
-|    |--- queries/
-|         |--- 05_create_map_layers.sql
 ```
+
+Notes:
+- `data/` is a placeholder for **large raw inputs** (not committed).
+- `outputs/` and `docs/tiles/` contain **pre-built artifacts** produced by the notebooks / map pipeline.
+- There is an extra file `notebooks/05_compute_transmission_and_historical_fire_exposure.ipynb.ipynb` (a duplicate notebook).
+
 ## Notebooks
 
-The notebooks are designed to be run in order and together form a transparent, database-centered analytics pipeline. Computationally expensive spatial intersections are executed once and cached in PostGIS, ensuring reproducibility and performance.
+The notebooks are designed to be run in order and together form a transparent, database-centered analytics pipeline. Computationally expensive spatial intersections are executed in **PostGIS** and cached for reuse.
 
-01_ingest_fhsz.ipynb
+`01_ingest_fire_hazard_severity_zones.ipynb`
 
 Ingests CAL FIRE Fire Hazard Severity Zone data (LRA + SRA), standardizes classifications, and writes authoritative hazard tables to PostGIS.
 
-02_ingest_fire_perimeters.ipynb
+`02_ingest_fire_perimeters.ipynb`
 
 Ingests CAL FIRE FRAP historical fire perimeters, extracts temporal attributes, and stores standardized geometries in PostGIS.
 
-03_ingest_transmission_lines.ipynb
+`03_ingest_transmission_lines.ipynb`
 
 Ingests public transmission line geometries, filters to ≥115 kV, computes accurate line lengths in EPSG:3310, and assigns permanent primary keys for stable joins.
 
-04_transmission_fhsz_exposure.ipynb
+`04_compute_transmission_and_fhsz_exposure.ipynb`
 
 Computes per-line overlap between transmission geometry and wildfire hazard zones. Results are cached by hazard class to avoid repeated geometry computation.
 
-05_transmission_fire_exposure.ipynb
+`05_compute_transmission_and_historical_fire_exposure.ipynb`
 
 Computes per-line overlap between transmission geometry and historical fire perimeters within the selected analysis window.
 
-06_joint_exposure.ipynb
+`06_compute_joint_exposure.ipynb`
 
 Combines cached exposure tables to identify joint exposure, defined as transmission segments intersecting both Very High hazard zones and historical fire perimeters. No heavy spatial computation occurs here.
 
-07_results_synthesis.ipynb
+`07_results_synthesis.ipynb`
 
 Generates report-ready tables and figures using cached exposure results only.
 
@@ -144,23 +135,33 @@ Generates report-ready tables and figures using cached exposure results only.
 
 ## Interactive Map
 
-The project includes a high-quality interactive web map built with:
+The repo includes an interactive web map for visual inspection and communication (layer toggles + hover attributes).
 
-* Tippecanoe for vector-tile generation
-* TileServer-GL (Dockerized) for local tile serving
-* MapLibre GL JS for browser-based rendering
+Two viewing modes are included:
 
-This approach enables:
-* smooth rendering of large transmission datasets
-* layer toggling (all lines, Very High hazard segments, joint exposure)
-* clean cartographic styling comparable to professional GIS platforms
+- **Static site (recommended for sharing)**: `docs/index.html` uses **PMTiles** from `docs/tiles/` (intended for GitHub Pages or any static host).
+- **Local tileserver (development)**: `map/web/index.html` is configured to read vector tiles served by **TileServer-GL** (`map/docker-compose.yml`) from MBTiles under `map/tiles/`.
 
-The map is served locally and designed to be embeddable or hosted on static infrastructure if desired.
+If you are rebuilding map artifacts from PostGIS, the map-specific SQL for generating map-ready tables lives at `map/sql/create_map_layers.sql`.
 ---
 
 ## Reproducibility
 
-All results can be reproduced locally by creating a virtual environment, configuring a local PostGIS database, and running the notebooks in order:
+To reproduce results end-to-end, you need:
+
+- **Python** (install dependencies from `requirements.txt`)
+- **A PostGIS database** reachable from your environment
+- The raw input datasets (see the ingest notebooks for what/where)
+
+The notebooks read PostGIS connection settings from environment variables (or a `.env` file in the repo root):
+
+- `DB_HOST` (default: `localhost`)
+- `DB_PORT` (default: `5432`)
+- `DB_NAME` (default: `wildfire_grid`)
+- `DB_USER` (required)
+- `DB_PASSWORD` (required)
+
+Run the notebooks in order:
 
 ```
 python -m venv .venv
@@ -169,8 +170,8 @@ pip install -r requirements.txt
 jupyter lab
 ```
 
-Docker is used only for local vector-tile generation and visualization. No containers are intended to run persistently, and all services can be stopped safely when the project is closed.
+Docker is used only for **local tile serving** in the map workflow; it is not required for the analysis notebooks themselves.
 
 ## Closing Note
 
-This project is conceived as a focused data analytics exercise grounded in public information and institutional realism. Its contribution lies not in predictive power, but in clarifying where wildfire exposure persistently intersects California’s transmission infrastructure and where the most consequential questions remain unanswered.
+This project is a focused, public-data analytics exercise. Its contribution is not predictive power, but a reproducible way to see **where wildfire exposure repeatedly co-locates with transmission infrastructure** and where deeper planning/engineering questions may be most warranted.
