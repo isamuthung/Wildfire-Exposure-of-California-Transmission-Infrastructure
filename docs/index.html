@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Wildfire Exposure of CA Transmission Infrastructure</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+  <style>
+    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    .panel {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(255,255,255,0.95);
+      border-radius: 10px; padding: 10px 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+      max-width: 340px;
+      font-size: 13px;
+    }
+    .panel h1 { margin: 0 0 6px 0; font-size: 14px; }
+    .row { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
+    .row label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+    .legend { margin-top: 8px; }
+    .swatch { width: 10px; height: 10px; display: inline-block; border-radius: 2px; margin-right: 6px; }
+    .tooltip {
+      position: absolute; z-index: 10;
+      background: rgba(0,0,0,0.82); color: #fff;
+      padding: 8px 10px; border-radius: 8px;
+      pointer-events: none; font-size: 12px;
+      max-width: 360px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="panel">
+    <h1>Wildfire Exposure — Transmission Lines (Screening)</h1>
+    <div>Toggle layers and hover segments for attributes.</div>
+
+    <div class="row">
+      <label><input type="checkbox" id="toggleAll" checked /> All lines</label>
+      <label><input type="checkbox" id="toggleVH" checked /> Very High segments</label>
+      <label><input type="checkbox" id="toggleJoint" checked /> Joint segments</label>
+    </div>
+
+    <div class="legend">
+      <div><span class="swatch" style="background:#666;"></span>All lines</div>
+      <div><span class="swatch" style="background:#f39c12;"></span>Very High FHSZ segments</div>
+      <div><span class="swatch" style="background:#e74c3c;"></span>Joint exposure segments</div>
+    </div>
+  </div>
+
+  <div id="tooltip" class="tooltip"></div>
+
+  <!-- PMTiles protocol support -->
+  <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
+  <script>
+    const protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol("pmtiles", protocol.tile);
+  </script>
+
+  <script>
+    // ===== Static hosting mode (GitHub Pages) =====
+    // Assumes these files exist relative to this HTML:
+    //   ./tiles/tx.pmtiles
+    //   ./tiles/exposure.pmtiles
+    //   ./tiles/joint.pmtiles
+
+    const sources = {
+      tx: {
+        type: "vector",
+        url: "pmtiles://tiles/tx.pmtiles"
+      },
+      exposure: {
+        type: "vector",
+        url: "pmtiles://tiles/exposure.pmtiles"
+      },
+      joint: {
+        type: "vector",
+        url: "pmtiles://tiles/joint.pmtiles"
+      }
+    };
+
+    // Basemap: free raster tiles (no keys)
+    const style = {
+      version: 8,
+      sources: {
+        osm: {
+          type: "raster",
+          tiles: [
+            "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          ],
+          tileSize: 256,
+          attribution: "© OpenStreetMap contributors"
+        },
+        ...sources
+      },
+      layers: [
+        { id: "osm", type: "raster", source: "osm" },
+
+        // All lines
+        {
+          id: "tx_lines_all",
+          type: "line",
+          source: "tx",
+          "source-layer": "tx_lines_all",
+          paint: { "line-width": 1.2, "line-opacity": 0.55, "line-color": "#666" }
+        },
+
+        // Very High segments
+        {
+          id: "tx_segments_vh",
+          type: "line",
+          source: "exposure",
+          "source-layer": "tx_segments_vh",
+          paint: { "line-width": 2.2, "line-opacity": 0.85, "line-color": "#f39c12" }
+        },
+
+        // Joint segments (hero)
+        {
+          id: "tx_segments_joint",
+          type: "line",
+          source: "joint",
+          "source-layer": "tx_segments_joint",
+          paint: { "line-width": 3.0, "line-opacity": 0.95, "line-color": "#e74c3c" }
+        }
+      ]
+    };
+
+    const map = new maplibregl.Map({
+      container: "map",
+      style,
+      center: [-119.5, 37.2], // CA
+      zoom: 5.3
+    });
+
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
+
+    const tooltip = document.getElementById("tooltip");
+
+    function setLayerVisible(layerId, visible) {
+      if (!map.getLayer(layerId)) return;
+      map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none");
+    }
+
+    // Layer toggles
+    document.getElementById("toggleAll").addEventListener("change", (e) => {
+      setLayerVisible("tx_lines_all", e.target.checked);
+    });
+    document.getElementById("toggleVH").addEventListener("change", (e) => {
+      setLayerVisible("tx_segments_vh", e.target.checked);
+    });
+    document.getElementById("toggleJoint").addEventListener("change", (e) => {
+      setLayerVisible("tx_segments_joint", e.target.checked);
+    });
+
+    // Hover interaction for VH + Joint
+    const hoverLayers = ["tx_segments_joint", "tx_segments_vh"];
+
+    map.on("mousemove", (e) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: hoverLayers });
+      if (!features.length) {
+        tooltip.style.display = "none";
+        map.getCanvas().style.cursor = "";
+        return;
+      }
+      map.getCanvas().style.cursor = "pointer";
+
+      const f = features[0];
+      const p = f.properties || {};
+
+      const segKm = (p.seg_km !== undefined) ? Number(p.seg_km).toFixed(3) : "—";
+      const owner = p.owner || "—";
+      const kv = (p.voltage_kv !== undefined) ? p.voltage_kv : "—";
+      const lineId = p.line_id || "—";
+
+      tooltip.innerHTML =
+        `<div><b>Line ID:</b> ${lineId}</div>` +
+        `<div><b>Owner:</b> ${owner}</div>` +
+        `<div><b>Voltage (kV):</b> ${kv}</div>` +
+        `<div><b>Segment length (km):</b> ${segKm}</div>` +
+        (p.hazard_class ? `<div><b>Hazard class:</b> ${p.hazard_class}</div>` : "");
+
+      tooltip.style.left = (e.originalEvent.pageX + 12) + "px";
+      tooltip.style.top = (e.originalEvent.pageY + 12) + "px";
+      tooltip.style.display = "block";
+    });
+
+    map.on("mouseleave", "tx_segments_vh", () => { tooltip.style.display = "none"; });
+    map.on("mouseleave", "tx_segments_joint", () => { tooltip.style.display = "none"; });
+  </script>
+</body>
+</html>
