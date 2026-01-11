@@ -1,7 +1,3 @@
--- 05_create_map_layers.sql
--- Map-ready layers in EPSG:4326 for vector tiling and web display.
--- Robust to reruns: drops tables + orphaned composite types.
-
 BEGIN;
 
 -- Drop tables (CASCADE removes dependent indexes/views)
@@ -81,7 +77,6 @@ ANALYZE map_tx_segments_vh;
 
 -- -------------------------------------------------------------------
 -- 3) Joint exposure segments (Very High ∩ Historical fire union)
---    IMPORTANT: expects fire_union_3310 to exist (from Notebook 06).
 -- -------------------------------------------------------------------
 CREATE TABLE map_tx_segments_joint AS
 WITH fire AS (
@@ -122,7 +117,7 @@ CREATE INDEX IF NOT EXISTS idx_map_tx_segments_joint_line ON map_tx_segments_joi
 ANALYZE map_tx_segments_joint;
 
 -- -------------------------------------------------------------------
--- 4) Optional polygon backdrops (simplified)
+-- 4) Optional polygon backdrops
 -- -------------------------------------------------------------------
 CREATE TABLE map_polygons_vh AS
 WITH vh_union AS (

@@ -34,7 +34,6 @@ tippecanoe -o "$TILES_DIR/joint.mbtiles" \
   --force \
   "$EXPORT_DIR/tx_segments_joint.geojson"
 
-# Optional polygon tiles (can be large; only keep if needed)
 if [ -f "$EXPORT_DIR/polygons_vh.geojson" ]; then
   tippecanoe -o "$TILES_DIR/polygons.mbtiles" \
     -l polygons_vh \
