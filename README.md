@@ -1,12 +1,13 @@
 # Wildfire-Exposure-of-California-Transmission-Infrastructure
+Screening-Level Spatial Analysis
 
-# Wildfire Exposure of California Transmission Infrastructure
+Wildfires have become a persistent and structurally significant feature of California’s landscape, shaped not only by extreme events but by repeated exposure across the same regions year after year. Rather than occurring as isolated disasters, wildfire hazard increasingly recurs within defined geographic corridors that intersect critical infrastructure systems not designed for sustained fire pressure. Electric transmission infrastructure is particularly exposed. High-voltage transmission lines are long, linear assets that traverse mountainous and forested terrain, often intersecting areas of elevated wildfire hazard repeatedly over time. Public discussion of wildfire and the electric grid frequently centers on individual fire events, outages, or catastrophic seasons. Less attention is paid to where wildfire exposure consistently accumulates across the transmission network and which portions of the system face sustained spatial pressure rather than episodic interaction. This project was developed to help clarify that gap using only publicly available data and defensible spatial analytics.
 
-Wildfires have become a persistent and structurally significant feature of California’s landscape, shaped not only by extreme events but by repeated exposure across the same regions year after year. Rather than occurring as isolated disasters, wildfire hazard increasingly recurs within defined geographic corridors that intersect critical infrastructure systems not designed for sustained fire pressure. Electric transmission infrastructure is particularly exposed: long, linear assets traverse mountainous and forested terrain, repeatedly intersecting areas of elevated wildfire hazard over time.
-
-Public discussion of wildfire and the grid often centers on individual fire events, outages, or catastrophic seasons. Less attention is given to understanding where wildfire exposure consistently accumulates along the transmission network and which portions of the system face sustained spatial pressure rather than episodic interaction. This project grew out of a desire to use data analytics to better understand that gap using only publicly available information.
-
-This repository implements a **screening-level spatial exposure analysis** of California’s high-voltage electric transmission infrastructure. Using publicly released wildfire hazard maps and historical fire perimeter data, the analysis quantifies where transmission geometry overlaps modeled wildfire hazard, where it intersects observed historical fires, and where these exposures co-occur. The goal is not to predict fires, assess grid reliability, or estimate damages, but to organize fragmented public datasets into a clear, defensible spatial framework that highlights where exposure persistently accumulates and where deeper technical or policy analysis may be most warranted.
+This repository implements a screening-level spatial exposure analysis of California’s high-voltage electric transmission infrastructure. Using publicly released wildfire hazard maps and historical fire perimeter data, the analysis quantifies:
+* where transmission geometry overlaps modeled wildfire hazard
+* where it intersects observed historical fire perimeters
+* where those two forms of exposure co-occur
+The goal is not to predict fires, assess grid reliability, or estimate damages. Instead, the project organizes fragmented public datasets into a clear, reproducible spatial framework that highlights where exposure persistently accumulates and where deeper engineering, planning, or policy analysis may be most warranted.
 
 ---
 
